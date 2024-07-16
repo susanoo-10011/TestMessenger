@@ -14,12 +14,12 @@ var Client *mongo.Client
 
 type Post struct {
 	ID        primitive.ObjectID `bson:"_id"`
-	Title     string             `bson:"title"`
-	Content   string             `bson:"content"`
-	Image     *MediaFile         `bson:"image,omitempty"`
-	Video     *MediaFile         `bson:"video,omitempty"`
-	Gif       *MediaFile         `bson:"gif,omitempty"`
-	CreatedAt time.Time          `bson:"created_at"`
+	Title     string             `bson:"Title"`
+	Content   string             `bson:"Content"`
+	Image     *MediaFile         `bson:"Image,omitempty"`
+	Video     *MediaFile         `bson:"Video,omitempty"`
+	Gif       *MediaFile         `bson:"Gif,omitempty"`
+	CreatedAt time.Time          `bson:"Created_at"`
 }
 
 type MediaFile struct {
