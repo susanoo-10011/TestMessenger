@@ -2,36 +2,13 @@ package src
 
 import (
 	"fmt"
+	"github.com/gin-gonic/gin"
 	"io"
 	"log"
 	"net"
 	"os"
 	"strconv"
-	"time"
-
-	"github.com/gin-gonic/gin"
-	"go.mongodb.org/mongo-driver/bson/primitive"
-	"go.mongodb.org/mongo-driver/mongo"
 )
-
-var Client *mongo.Client
-
-type Post struct {
-	ID        primitive.ObjectID `bson:"_id"`
-	Title     string             `bson:"Title"`
-	Content   string             `bson:"Content"`
-	Image     *MediaFile         `bson:"Image,omitempty"`
-	Video     *MediaFile         `bson:"Video,omitempty"`
-	Gif       *MediaFile         `bson:"Gif,omitempty"`
-	CreatedAt time.Time          `bson:"Created_at"`
-}
-
-type MediaFile struct {
-	ID        primitive.ObjectID `bson:"_id,omitempty"`
-	URL       string             `bson:"url"`
-	FileType  string             `bson:"file_type"`
-	CreatedAt time.Time          `bson:"created_at"`
-}
 
 func InitializeLogger(w io.Writer) *log.Logger {
 	var logOutput io.Writer = os.Stdout
