@@ -1,4 +1,5 @@
 ﻿using Npgsql;
+using System.Data.Common;
 using TestMessenger.Entity;
 using static Microsoft.EntityFrameworkCore.DbLoggerCategory.Database;
 
@@ -7,55 +8,62 @@ namespace AuthenticationService
     public class UserRepository
     {
         private readonly string _connectionString;
+        private NpgsqlConnection _connection;
 
         public UserRepository(string connectionString)
         {
             _connectionString = connectionString;
         }
 
-        public void Connect()
+        private async Task<NpgsqlConnection> GetConnectionAsync()
         {
-            using (var connection = new NpgsqlConnection(_connectionString))
+            if (_connection == null || _connection.State != System.Data.ConnectionState.Open)
             {
-                connection.Open();
+                _connection = new NpgsqlConnection(_connectionString);
+                await _connection.OpenAsync();
+            }
 
-                Console.WriteLine("Connected to the database.");
+            return _connection;
+        }
+
+        public async Task AddToken(User user, string token)
+        {
+            using (var connection = await GetConnectionAsync())
+            {
+                using (var command = new NpgsqlCommand())
+                {
+                    command.Connection = connection;
+                    command.CommandText = @"INSERT INTO auth_schema.token_records (""user_id"", ""token"") VALUES (@user_id, @token) RETURNING id";
+                    command.Parameters.AddWithValue("@user_id", $"{user.user_id}");
+                    command.Parameters.AddWithValue("@token", $"{token}");
+
+                    long tokenId = (long)await command.ExecuteScalarAsync();
+
+                    Console.WriteLine($"Токен пользователя создан {tokenId}");
+                }
+
             }
         }
 
-        public bool CheckUserInBD(User checkUser)
+        public async Task<bool> CheckToken(string currentToken)
         {
-            using (var connection = new NpgsqlConnection(_connectionString))
+            using (var connection = await GetConnectionAsync())
             {
-                connection.Open();
-
                 using (var command = new NpgsqlCommand())
                 {
-                    var users = new List<User>();
-
                     command.Connection = connection;
-                    command.CommandText = "SELECT \"Id\", \"Login\", \"Password\", \"Email\" FROM auth_schema.users";
+                    command.CommandText = "SELECT \"token\" FROM auth_schema.token_records";
+
                     using (var reader = command.ExecuteReader())
                     {
                         while (reader.Read())
                         {
-                            var user = new User
+                            string token = reader.GetString(reader.GetOrdinal("token"));
+
+                            if (token == currentToken)
                             {
-                                Id = reader.GetInt32(reader.GetOrdinal("Id")),
-                                Login = reader.GetString(reader.GetOrdinal("Login")),
-                                Password = reader.GetString(reader.GetOrdinal("Password")),
-                                Email = reader.GetString(reader.GetOrdinal("Email")),
-                            };
-
-                            users.Add(user);
-                        }
-                    }
-
-                    foreach (var user in users)
-                    {
-                        if(user.Login == checkUser.Login)
-                        {
-                            return false;
+                                return false;
+                            }
                         }
                     }
 
@@ -64,33 +72,95 @@ namespace AuthenticationService
             }
         }
 
-        public void AddUser(User user)
+        public async Task<bool> CheckUserLogin(User checkUser)
         {
-            using (var connection = new NpgsqlConnection(_connectionString))
+            using (var connection = await GetConnectionAsync())
             {
-                connection.Open();
-
                 using (var command = new NpgsqlCommand())
                 {
                     command.Connection = connection;
-                    command.CommandText = @"INSERT INTO auth_schema.users (""Login"", ""Password"", ""Email"") VALUES (@Login, @Password, @Email)";
-                    command.Parameters.AddWithValue("@Login", $"{user.Login}");
-                    command.Parameters.AddWithValue("@Password", $"{user.Password}");
-                    command.Parameters.AddWithValue("@Email", $"{user.Email}");
+                    command.CommandText = "SELECT \"login\" FROM auth_schema.users"; 
 
-                    command.ExecuteNonQuery();
+                    using (var reader = command.ExecuteReader())
+                    {
+                        while (reader.Read())
+                        {
+                            var user = new User
+                            {
+                                login = reader.GetString(reader.GetOrdinal("login")),
+                            };
+
+                            if(user.login == checkUser.login)
+                            {
+                                 return false;
+                            }
+                        }
+                    }
+
+                    return true;
                 }
-
-                Console.WriteLine("Пользователь зарегистрирован");
             }
         }
 
-        public void DeleteUser(int id)
+        public async Task<long> CheckLoginPassword(User checkUser)
         {
-            using (var connection = new NpgsqlConnection(_connectionString))
+            using (var connection = await GetConnectionAsync())
             {
-                connection.Open();
+                using(var command = new NpgsqlCommand())
+                {
+                    command.Connection = connection;
+                    command.CommandText = "SELECT \"login\", \"password\", \"user_id\" FROM auth_schema.users";
+                    using (var reader = command.ExecuteReader())
+                    {
+                        while (reader.Read())
+                        {
+                            var user = new User
+                            {
+                                login = reader.GetString(reader.GetOrdinal("login")),
+                                password = reader.GetString(reader.GetOrdinal("password")),
+                                user_id = reader.GetOrdinal("user_id"),
+                            };
 
+                            if(user.login == checkUser.login)
+                            {
+                                if (user.password == checkUser.password)
+                                {
+                                    return user.user_id;
+                                }
+                            }
+                        }
+                    }
+
+                    return 0;
+                }
+            }
+        }
+
+        public async Task<User> AddUser(User user)
+        {
+            using (var connection = await GetConnectionAsync())
+            {
+                using (var command = new NpgsqlCommand())
+                {
+                    command.Connection = connection;
+                    command.CommandText = @"INSERT INTO auth_schema.users (""login"", ""password"", ""email"") VALUES (@login, @password, @email) RETURNING user_id;";
+                    command.Parameters.AddWithValue("@login", $"{user.login}");
+                    command.Parameters.AddWithValue("@password", $"{user.password}");
+                    command.Parameters.AddWithValue("@email", $"{user.email}");
+
+                    long userId = (long)await command.ExecuteScalarAsync();
+                    Console.WriteLine($"Пользователь зарегистрирован. ID: {userId}");
+
+                    user.user_id = userId;
+                    return user;
+                }
+            }
+        }
+
+        public async Task DeleteUser(int id)
+        {
+            using (var connection = await GetConnectionAsync())
+            {
                 using (var command = new NpgsqlCommand())
                 {
                     command.Connection = connection;

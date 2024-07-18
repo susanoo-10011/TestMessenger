@@ -8,9 +8,9 @@ namespace TestMessenger.Entity
 {
     public class User
     {
-        public int Id { get; set; }
-        public string Login { get; set; }
-        public string Password { get; set; }
-        public string Email { get; set; }
+        public long user_id { get; set; }
+        public string login { get; set; }
+        public string password { get; set; }
+        public string email { get; set; }
     }
 }

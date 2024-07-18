@@ -9,11 +9,11 @@ using TestMessenger.Entity;
 
 namespace AuthenticationService
 {
-    public class ApplicationContext : DbContext
+    public class DBContext : DbContext
     {
         public DbSet<User> Users { get; set; } = null!;
 
-        public ApplicationContext()
+        public DBContext()
         {
             Database.EnsureCreated();
         }
