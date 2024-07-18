@@ -62,9 +62,23 @@ namespace TestMessenger
                             }
                         }
 
-                        userRepository.AddToken(user, token);
+                        TokenRecord tokenRecord = new TokenRecord();
+                        tokenRecord.user_id = user.user_id;
+                        tokenRecord.token = token;
 
-                        string jsonResponse = "{\"status\":\"success\",\"message\":\"Logged in successfully\"}";
+                        long tokenId = await userRepository.AddToken(user, token);
+
+                        if(tokenId != 0)
+                            tokenRecord.id = tokenId;
+
+                        var jsonData = new
+                        {
+                            status = "success",
+                            message = "Logged in successfully",
+                            tokenEntity = tokenRecord
+                        };
+
+                        string jsonResponse = JsonConvert.SerializeObject(jsonData);
 
                         await SendReply(response, jsonResponse, 200);
                     }
@@ -93,15 +107,14 @@ namespace TestMessenger
                         tokenRecord.user_id = userId;
                         tokenRecord.token = "token";
 
-                        var jsonRData = new
+                        var jsonData = new
                         {
                             status = "success",
                             message = "Successful login",
                             tokenRecord = tokenRecord
                         };
 
-                        string jsonResponse = JsonConvert.SerializeObject(jsonRData);
-                        //"{\"status\":\"success\",\"message\":\"Successful login\"}";
+                        string jsonResponse = JsonConvert.SerializeObject(jsonData);
 
                         await SendReply(response, jsonResponse, 200);
                     }

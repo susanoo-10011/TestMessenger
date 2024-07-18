@@ -26,20 +26,43 @@ namespace AuthenticationService
             return _connection;
         }
 
-        public async Task AddToken(User user, string token)
+        public async Task<long> AddToken(User user, string token)
         {
             using (var connection = await GetConnectionAsync())
             {
                 using (var command = new NpgsqlCommand())
                 {
-                    command.Connection = connection;
-                    command.CommandText = @"INSERT INTO auth_schema.token_records (""user_id"", ""token"") VALUES (@user_id, @token) RETURNING id";
-                    command.Parameters.AddWithValue("@user_id", $"{user.user_id}");
-                    command.Parameters.AddWithValue("@token", $"{token}");
+                    try
+                    {
+                        command.Connection = connection;
+                        command.CommandText = @"INSERT INTO auth_schema.token_records (user_id, token) 
+                                              SELECT u.user_id, :token 
+                                              FROM auth_schema.users u
+                                              WHERE u.user_id = :user_id
+                                              RETURNING id;";
 
-                    long tokenId = (long)await command.ExecuteScalarAsync();
+                        command.Parameters.AddWithValue("user_id", user.user_id);
+                        command.Parameters.AddWithValue("token", token);
 
-                    Console.WriteLine($"Токен пользователя создан {tokenId}");
+                        long tokenId = (long)await command.ExecuteScalarAsync();
+                        Console.WriteLine($"Токен пользователя создан {tokenId}");
+
+                        return tokenId;
+
+                    }
+                    catch (PostgresException pgex)
+                    {
+                        Console.WriteLine($"PostgreSQL Error: {pgex.Message}");
+                        Console.WriteLine($"SQL State: {pgex.SqlState}");
+                        Console.WriteLine($"Error Code: {pgex.ErrorCode}");
+
+                        return 0;
+                    }
+                    catch (Exception ex)
+                    {
+                        Console.WriteLine($"Error: {ex}");
+                        return 0;
+                    }
                 }
 
             }
@@ -79,7 +102,7 @@ namespace AuthenticationService
                 using (var command = new NpgsqlCommand())
                 {
                     command.Connection = connection;
-                    command.CommandText = "SELECT \"login\" FROM auth_schema.users"; 
+                    command.CommandText = "SELECT \"login\" FROM auth_schema.users";
 
                     using (var reader = command.ExecuteReader())
                     {
@@ -90,9 +113,9 @@ namespace AuthenticationService
                                 login = reader.GetString(reader.GetOrdinal("login")),
                             };
 
-                            if(user.login == checkUser.login)
+                            if (user.login == checkUser.login)
                             {
-                                 return false;
+                                return false;
                             }
                         }
                     }
@@ -106,7 +129,7 @@ namespace AuthenticationService
         {
             using (var connection = await GetConnectionAsync())
             {
-                using(var command = new NpgsqlCommand())
+                using (var command = new NpgsqlCommand())
                 {
                     command.Connection = connection;
                     command.CommandText = "SELECT \"login\", \"password\", \"user_id\" FROM auth_schema.users";
@@ -121,7 +144,7 @@ namespace AuthenticationService
                                 user_id = reader.GetOrdinal("user_id"),
                             };
 
-                            if(user.login == checkUser.login)
+                            if (user.login == checkUser.login)
                             {
                                 if (user.password == checkUser.password)
                                 {
