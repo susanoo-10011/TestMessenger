@@ -15,6 +15,9 @@ namespace AuthenticationService
             _connectionString = connectionString;
         }
 
+        /// <summary>
+        /// Устанавливаем соединение с БД
+        /// </summary>
         private async Task<NpgsqlConnection> GetConnectionAsync()
         {
             if (_connection == null || _connection.State != System.Data.ConnectionState.Open)
@@ -26,6 +29,9 @@ namespace AuthenticationService
             return _connection;
         }
 
+        /// <summary>
+        /// Добавляем уникальный токен пользователя в БД
+        /// </summary>
         public async Task<long> AddToken(User user, string token)
         {
             using (var connection = await GetConnectionAsync())
@@ -68,6 +74,9 @@ namespace AuthenticationService
             }
         }
 
+        /// <summary>
+        /// Проверяем токен на совпадения в базе данных, чтобы не было одинаковых
+        /// </summary>
         public async Task<bool> CheckToken(string currentToken)
         {
             using (var connection = await GetConnectionAsync())
@@ -95,6 +104,9 @@ namespace AuthenticationService
             }
         }
 
+        /// <summary>
+        /// Проверяем логин на совпадения в базе данных, чтобы не было одинаковых
+        /// </summary>
         public async Task<bool> CheckUserLogin(User checkUser)
         {
             using (var connection = await GetConnectionAsync())
@@ -125,6 +137,9 @@ namespace AuthenticationService
             }
         }
 
+        /// <summary>
+        /// Проверяем логин и пароль пользователя для входа в систему
+        /// </summary>
         public async Task<long> CheckLoginPassword(User checkUser)
         {
             using (var connection = await GetConnectionAsync())
@@ -159,6 +174,9 @@ namespace AuthenticationService
             }
         }
 
+        /// <summary>
+        /// Добавляем нового пользователя
+        /// </summary>
         public async Task<User> AddUser(User user)
         {
             using (var connection = await GetConnectionAsync())
@@ -180,6 +198,9 @@ namespace AuthenticationService
             }
         }
 
+        /// <summary>
+        /// Удаляем пользователя из БД
+        /// </summary>
         public async Task DeleteUser(int id)
         {
             using (var connection = await GetConnectionAsync())

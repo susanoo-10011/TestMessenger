@@ -5,6 +5,7 @@ using Newtonsoft.Json;
 using AuthenticationService;
 using AuthenticationService.Entity;
 using System.Security.Cryptography;
+using System.Text.RegularExpressions;
 
 namespace TestMessenger
 {
@@ -40,54 +41,8 @@ namespace TestMessenger
 
                     User body = JsonConvert.DeserializeObject<User>(json);
 
-                    UserRepository userRepository = new UserRepository(_connectionString);
-                    bool checkUserLogin = await userRepository.CheckUserLogin(body);
+                    ProcessingRegistrationRequests(response, body);
 
-                    if (checkUserLogin)
-                    {
-                        User user = await userRepository.AddUser(body);
-
-                        string token = "";
-                        while (true)
-                        {
-                            token = GenerateApiKey();
-
-                            if (await userRepository.CheckToken(token))
-                            {
-                                break;
-                            }
-                            else
-                            {
-                                continue;
-                            }
-                        }
-
-                        TokenRecord tokenRecord = new TokenRecord();
-                        tokenRecord.user_id = user.user_id;
-                        tokenRecord.token = token;
-
-                        long tokenId = await userRepository.AddToken(user, token);
-
-                        if(tokenId != 0)
-                            tokenRecord.id = tokenId;
-
-                        var jsonData = new
-                        {
-                            status = "success",
-                            message = "Logged in successfully",
-                            tokenEntity = tokenRecord
-                        };
-
-                        string jsonResponse = JsonConvert.SerializeObject(jsonData);
-
-                        await SendReply(response, jsonResponse, 200);
-                    }
-                    else
-                    {
-                        string jsonResponse = "{\"status\":\"error\",\"message\":\"This login already exists\"}";
-
-                        await SendReply(response, jsonResponse, 401);
-                    }
                 }
             }
             else if (request.HttpMethod == "POST" && request.RawUrl == "/enterTheSystem")
@@ -97,33 +52,7 @@ namespace TestMessenger
                     string json = await reader.ReadToEndAsync();
                     User body = JsonConvert.DeserializeObject<User>(json);
 
-                    UserRepository userRepository = new UserRepository(_connectionString);
-                    long userId = await userRepository.CheckLoginPassword(body);
-
-                    if (userId != 0)
-                    {
-
-                        TokenRecord tokenRecord = new TokenRecord();
-                        tokenRecord.user_id = userId;
-                        tokenRecord.token = "token";
-
-                        var jsonData = new
-                        {
-                            status = "success",
-                            message = "Successful login",
-                            tokenRecord = tokenRecord
-                        };
-
-                        string jsonResponse = JsonConvert.SerializeObject(jsonData);
-
-                        await SendReply(response, jsonResponse, 200);
-                    }
-                    else if (userId == 0)
-                    {
-                        string jsonResponse = "{\"status\":\"error\",\"message\":\"Invalid login or password\"}";
-
-                        await SendReply(response, jsonResponse, 402);
-                    }
+                    ProcessingLoginRequests(response, body);
                 }
             }
             else
@@ -135,6 +64,130 @@ namespace TestMessenger
                 Stream output = response.OutputStream;
                 await output.WriteAsync(buffer, 0, buffer.Length);
                 output.Close();
+            }
+        }
+
+        #region Registration
+
+        private static async Task ProcessingRegistrationRequests(HttpListenerResponse response, User body)
+        {
+            string pattern = @"^\w+[\w.-]*@\w+([\w-]\w+)*\.\w{2,3}(\.\w{2})?$";
+
+            Regex regex = new Regex(pattern);
+            bool isValidEmail = regex.IsMatch(body.email);
+            if (!isValidEmail)
+            {
+                string jsonResponse = "{\"status\":\"error\",\"message\":\"Incorrect email\"}";
+                response.StatusDescription = "Incorrect email";
+                await SendReply(response, jsonResponse, 403);
+
+                return;
+            }
+
+            if (!CheckPassword(body.password))
+            {
+                string jsonResponse = "{\"status\":\"error\",\"message\":\"Incorrect password\"}";
+                response.StatusDescription = "Incorrect password";
+                await SendReply(response, jsonResponse, 404);
+
+                return;
+            }
+
+            UserRepository userRepository = new UserRepository(_connectionString);
+            bool checkUserLogin = await userRepository.CheckUserLogin(body);
+
+            if (checkUserLogin)
+            {
+                User user = await userRepository.AddUser(body);
+
+                string token = "";
+                while (true)
+                {
+                    token = GenerateApiKey();
+
+                    if (await userRepository.CheckToken(token))
+                    {
+                        break;
+                    }
+                    else
+                    {
+                        continue;
+                    }
+                }
+
+                TokenRecord tokenRecord = new TokenRecord();
+                tokenRecord.user_id = user.user_id;
+                tokenRecord.token = token;
+
+                long tokenId = await userRepository.AddToken(user, token);
+
+                if (tokenId != 0)
+                    tokenRecord.id = tokenId;
+
+                var jsonData = new
+                {
+                    status = "success",
+                    message = "Logged in successfully",
+                    tokenEntity = tokenRecord
+                };
+
+                string jsonResponse = JsonConvert.SerializeObject(jsonData);
+                await SendReply(response, jsonResponse, 200);
+            }
+            else
+            {
+                string jsonResponse = "{\"status\":\"error\",\"message\":\"This login already exists\"}";
+                response.StatusDescription = "This login already exists";
+                await SendReply(response, jsonResponse, 401);
+            }
+        }
+
+        private static bool CheckPassword(string password)
+        {
+            if (password == null || password.Length < 8)
+            {
+                return false;
+            }
+
+            Regex regex = new Regex(@"[a-zA-Z]");
+            if (!regex.IsMatch(password))
+            {
+                return false;
+            }
+
+            return true;
+        }
+
+        #endregion
+
+        private static async Task ProcessingLoginRequests(HttpListenerResponse response, User body)
+        {
+            UserRepository userRepository = new UserRepository(_connectionString);
+            long userId = await userRepository.CheckLoginPassword(body);
+
+            if (userId != 0)
+            {
+
+                TokenRecord tokenRecord = new TokenRecord();
+                tokenRecord.user_id = userId;
+                tokenRecord.token = "token";
+
+                var jsonData = new
+                {
+                    status = "success",
+                    message = "Successful login",
+                    tokenRecord = tokenRecord
+                };
+
+                string jsonResponse = JsonConvert.SerializeObject(jsonData);
+
+                await SendReply(response, jsonResponse, 200);
+            }
+            else if (userId == 0)
+            {
+                string jsonResponse = "{\"status\":\"error\",\"message\":\"Invalid login or password\"}";
+                response.StatusDescription = "Invalid login or password";
+                await SendReply(response, jsonResponse, 402);
             }
         }
 
