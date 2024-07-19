@@ -27,6 +27,45 @@ func InitializeLogger(w io.Writer) *log.Logger {
 	return log.New(io.MultiWriter(os.Stdout, logOutput), "", log.LstdFlags)
 }
 
+func StartServer(logger *log.Logger) error {
+	r := gin.Default()
+	r.POST("/posts", CreatePost)
+
+	port := ":9090"
+
+	if err := validatePort(port); err != nil {
+		return fmt.Errorf("invalid port: %w", err)
+	}
+
+	if err := checkPortAvailable(port); err != nil {
+		return fmt.Errorf("port %s is unavailable: %w", port, err)
+	}
+
+	logger.Printf("Server started and running on port %s", port)
+	if err := r.Run(port); err != nil {
+		return fmt.Errorf("failed to start server: %w", err)
+	}
+
+	return nil
+}
+
+func validatePort(port string) error {
+	if len(port) < 2 || port[0] != ':' {
+		return fmt.Errorf("invalid port format")
+	}
+
+	portNum, err := strconv.Atoi(port[1:])
+	if err != nil {
+		return fmt.Errorf("invalid port number")
+	}
+
+	if portNum < 1 || portNum > 65535 {
+		return fmt.Errorf("port number must be in the range from 1 to 65535")
+	}
+
+	return nil
+}
+
 func checkPortAvailable(port string) error {
 	ln, err := net.Listen("tcp", port)
 	if err != nil {
@@ -36,19 +75,6 @@ func checkPortAvailable(port string) error {
 	return nil
 }
 
-func StartServer(logger *log.Logger) {
-	r := gin.Default()
-	r.POST("/posts", CreatePost)
-
-	port := ":9090"
-	portNum, err := strconv.Atoi(port[1:])
-	if err != nil {
-		log.Fatalf("Invalid port number")
-	}
-	if portNum < 1 || portNum > 65535 {
-		log.Fatalf("The port number must be in the range from 1 to 65535")
-	}
-	if err := checkPortAvailable(port); err != nil {
-		logger.Printf("Server started and running on port %s", port)
-	}
-}
+//Проверка на спам или недопустимый контент
+//Парсинг и сохранение хэштегов
+//Увеличение счетчика постов пользователя

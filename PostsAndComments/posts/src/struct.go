@@ -10,8 +10,8 @@ var Client *mongo.Client
 
 type Post struct {
 	ID        primitive.ObjectID `bson:"_id"`
-	Title     string             `bson:"Title" validate:"requireed, min=3, mac=100""`
-	Content   string             `bson:"Content" validate`
+	Title     string             `bson:"Title" validate:"requireed, min=3, mac=100"`
+	Content   string             `bson:"Content" validate:"required"`
 	Image     *MediaFile         `bson:"Image,omitempty"`
 	Video     *MediaFile         `bson:"Video,omitempty"`
 	Gif       *MediaFile         `bson:"Gif,omitempty"`

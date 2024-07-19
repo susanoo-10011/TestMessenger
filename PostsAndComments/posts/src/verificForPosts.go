@@ -2,6 +2,7 @@ package src
 
 import (
 	"database/sql"
+	"errors"
 	"github.com/gin-gonic/gin"
 	"github.com/lib/pq"
 	"log"
@@ -30,11 +31,10 @@ func AuthMiddleware(db *sql.DB) gin.HandlerFunc {
 
 		tokenRecord, err := verifyToken(db, tokenString)
 		if err != nil {
-			switch err.(type) {
-			case *TokenError:
-				tokenErr := err.(*TokenError)
+			var tokenErr *TokenError
+			if errors.As(err, &tokenErr) {
 				c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": tokenErr.Message})
-			default:
+			} else {
 				c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"error": ErrUnknownError})
 				log.Printf("Error verifying token: %v", err)
 			}
@@ -61,9 +61,12 @@ func handleDatabaseError(err error) error {
 
 func verifyToken(db *sql.DB, tokenString string) (*TokenRecord, error) {
 	var record TokenRecord
+	if tokenString == "" {
+		return nil, &TokenError{Message: ErrorMsgTokenNotFoundOrExpired, Type: TokenNotFoundError}
+	}
 	err := db.QueryRow(`
         SELECT id, user_id, token, expires_at, created_at
-        FROM tokens
+        FROM token_records
         WHERE token = $1 AND expires_at > NOW()`, tokenString).Scan(&record.ID, &record.UserID, &record.Token, &record.ExpiresAt, &record.CreatedAt)
 
 	if err != nil {
@@ -78,7 +81,8 @@ func verifyToken(db *sql.DB, tokenString string) (*TokenRecord, error) {
 type TokenErrorType int
 
 const (
-	TokenNotFoundError TokenErrorType = iota
+	ErrorMsgTokenNotFoundOrExpired                = "Authorization header is required"
+	TokenNotFoundError             TokenErrorType = iota
 	TokenDuplicateError
 	UserNotFoundError
 	DatabaseError
