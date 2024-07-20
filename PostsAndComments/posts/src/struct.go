@@ -2,14 +2,13 @@ package src
 
 import (
 	"go.mongodb.org/mongo-driver/bson/primitive"
-	"go.mongodb.org/mongo-driver/mongo"
 	"time"
 )
 
-var Client *mongo.Client
-
 type Post struct {
 	ID        primitive.ObjectID `bson:"_id"`
+	PostID    string             `bson:"post_id" json:"post_id"`
+	UserID    int64              `bson:"user_id" json:"user_id"`
 	Title     string             `bson:"Title" validate:"requireed, min=3, mac=100"`
 	Content   string             `bson:"Content" validate:"required"`
 	Image     *MediaFile         `bson:"Image,omitempty"`

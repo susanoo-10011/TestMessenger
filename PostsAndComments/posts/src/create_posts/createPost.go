@@ -1,13 +1,15 @@
-package src
+package create_posts
 
 import (
 	"context"
 	"errors"
 	"fmt"
 	"github.com/gin-gonic/gin"
+	"github.com/google/uuid"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"net/http"
 	"net/url"
+	"posts/src"
 	"strings"
 	"time"
 )
@@ -36,7 +38,7 @@ func NewInternalServerError(message string) *AppError {
 }
 
 func CreatePost(c *gin.Context) {
-	var post Post
+	var post src.Post
 	if err := c.ShouldBindJSON(&post); err != nil {
 		HandleError(c, NewBadRequestError(err.Error()))
 		return
@@ -47,6 +49,17 @@ func CreatePost(c *gin.Context) {
 		return
 	}
 
+	post.ID = primitive.NewObjectID()
+	post.PostID = uuid.New().String()
+	post.CreatedAt = time.Now()
+
+	userID, err := getUserIDFromContext(c)
+	if err != nil {
+		HandleError(c, NewBadRequestError("Failed to get user ID"))
+		return
+	}
+
+	post.UserID = userID
 	post.ID = primitive.NewObjectID()
 	post.CreatedAt = time.Now()
 
@@ -65,11 +78,11 @@ func CreatePost(c *gin.Context) {
 		return
 	}
 
-	collection := Client.Database("blog").Collection("posts")
+	collection := src.Client.Database("blog").Collection("posts")
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
-	_, err := collection.InsertOne(ctx, post)
+	_, err = collection.InsertOne(ctx, post)
 	if err != nil {
 		HandleError(c, NewInternalServerError("Failed to create post: "+err.Error()))
 		return
@@ -78,7 +91,7 @@ func CreatePost(c *gin.Context) {
 	c.JSON(http.StatusCreated, post)
 }
 
-func initMediaFile(media *MediaFile) error {
+func initMediaFile(media *src.MediaFile) error {
 	if media == nil {
 		return nil
 	}
@@ -114,4 +127,18 @@ func HandleError(c *gin.Context, err error) {
 	default:
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Internal Server Error"})
 	}
+}
+
+func getUserIDFromContext(c *gin.Context) (int64, error) {
+	userID, exists := c.Get("userID")
+	if !exists {
+		return 0, errors.New("user ID not found in context")
+	}
+
+	userIDInt, ok := userID.(int64)
+	if !ok {
+		return 0, errors.New("user ID is not of type int64")
+	}
+
+	return userIDInt, nil
 }

@@ -6,7 +6,7 @@ import (
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 	"os"
-	"posts/src"
+	"posts/src/create_posts"
 	"time"
 )
 
@@ -16,7 +16,7 @@ var (
 )
 
 func main() {
-	logger := src.InitializeLogger(os.Stdout)
+	logger := create_posts.InitializeLogger(os.Stdout)
 	mongoURI := "mongodb://localhost:27017" // замените на ваш URI
 	clientOptions := options.Client().ApplyURI(mongoURI)
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
@@ -35,7 +35,7 @@ func main() {
 	}
 	DB = db
 
-	if err := src.StartServer(logger); err != nil {
+	if err := create_posts.StartServer(logger); err != nil {
 		logger.Fatalf("Server error: %v", err)
 	}
 }

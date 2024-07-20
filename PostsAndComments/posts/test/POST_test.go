@@ -5,7 +5,7 @@ import (
 	"io/ioutil"
 	"log"
 	"os"
-	"posts/src"
+	"posts/src/create_posts"
 	"testing"
 )
 
@@ -13,7 +13,7 @@ func TestInitializeLogger(t *testing.T) {
 	originalStdout := os.Stdout
 	var outputBuffer bytes.Buffer
 	log.SetOutput(&outputBuffer)
-	src.InitializeLogger(&outputBuffer)
+	create_posts.InitializeLogger(&outputBuffer)
 	defer func() { os.Stdout = originalStdout }()
 
 	if _, err := os.Stat("server.log"); os.IsNotExist(err) {
