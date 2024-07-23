@@ -1,0 +1,126 @@
+syntax = "proto3";
+
+package post_service;
+
+option go_package = "./post_service";
+
+service PostService {
+  rpc CreatePost(CreatePostRequest) returns (PostResponse) {}
+  rpc EditPost(EditPostRequest) returns (PostResponse) {}
+  rpc DeletePost(DeletePostRequest) returns (DeletePostResponse) {}
+  rpc UploadMedia(stream UploadMediaRequest) returns (UploadMediaResponse) {}
+  rpc AddComment(AddCommentRequest) returns (CommentResponse) {}
+  rpc DeleteComment(DeleteCommentRequest) returns (DeleteCommentResponse) {}
+  rpc LikePost(LikePostRequest) returns (LikePostResponse) {}
+  rpc RepostPost(RepostPostRequest) returns (RepostPostResponse) {}
+}
+
+message Post {
+  string ID = 1; // Represents MongoDB's ObjectId as a string
+  string PostID = 2;
+  int64 UserId = 3;
+  string Title = 4;
+  string Content = 5;
+  MediaFile Image = 6;
+  MediaFile Video = 7;
+  MediaFile Gif = 8;
+  int64 CreatedAt = 9; // Represents time.Time as a Unix timestamp (int64)
+}
+
+message MediaFile {
+  string ID = 1; // Represents MongoDB's ObjectId as a string
+  string URL = 2;
+  string FileType = 3;
+  int64 CreatedAt = 4; // Represents time.Time as a Unix timestamp (int64)
+}
+
+message CreatePostRequest {
+  int64 user_id = 1;
+  string title = 2; // Added title
+  string content = 3;
+  string image_url = 4; // You might want to send the URL after uploading
+  string video_url = 5; // Same for video and gif
+  string gif_url = 6;
+}
+
+message EditPostRequest {
+  string post_id = 1;
+  string title = 2;  // Optionally allow title editing
+  string content = 3;
+  string image_url = 4;
+  string video_url = 5;
+  string gif_url = 6;
+}
+
+message DeletePostRequest {
+  string post_id = 1;
+}
+
+message PostResponse {
+  Post post = 1;
+}
+
+message DeletePostResponse {
+  bool success = 1;
+}
+
+message UploadMediaRequest {
+  oneof data {
+    MediaMetadata metadata = 1;
+    bytes chunk_data = 2;
+  }
+}
+
+message MediaMetadata {
+  string file_name = 1;
+  string content_type = 2;
+}
+
+message UploadMediaResponse {
+  string media_url = 1;
+  string media_type = 2; // Add a field to indicate if it's "image", "video", "gif"
+}
+
+message Comment {
+  string id = 1;
+  string post_id = 2;
+  string user_id = 3;
+  string content = 4;
+  int64 created_at = 5;
+}
+
+message AddCommentRequest {
+  string post_id = 1;
+  string user_id = 2;
+  string content = 3;
+}
+
+message CommentResponse {
+  Comment comment = 1;
+}
+
+message DeleteCommentRequest {
+  string comment_id = 1;
+}
+
+message DeleteCommentResponse {
+  bool success = 1;
+}
+
+message LikePostRequest {
+  string post_id = 1;
+  string user_id = 2;
+}
+
+message LikePostResponse {
+  bool success = 1;
+}
+
+message RepostPostRequest {
+  string post_id = 1;
+  string user_id = 2;
+}
+
+message RepostPostResponse {
+  Post reposted_post = 1;
+}
