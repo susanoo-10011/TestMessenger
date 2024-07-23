@@ -10,6 +10,7 @@ import (
 	"net/http"
 	"net/url"
 	"posts/src"
+	"posts/src/mongoDB/database"
 	"strings"
 	"time"
 )
@@ -78,7 +79,7 @@ func CreatePost(c *gin.Context) {
 		return
 	}
 
-	collection := src.Client.Database("blog").Collection("posts")
+	collection := database.Client.Database("blog").Collection("posts")
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 

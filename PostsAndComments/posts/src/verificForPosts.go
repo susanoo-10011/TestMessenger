@@ -11,13 +11,30 @@ import (
 )
 
 const (
-	ErrAuthHeaderRequired     = "Authorization header is required"
-	ErrTokenNotFoundOrExpired = "token not found or expired"
-	ErrTokenAlreadyExists     = "token already exists"
-	ErrUserNotFound           = "user not found"
-	ErrDatabaseError          = "database error"
-	ErrUnknownError           = "unknown error"
+	ErrAuthHeaderRequired                         = "Authorization header is required"
+	ErrTokenNotFoundOrExpired                     = "token not found or expired"
+	ErrTokenAlreadyExists                         = "token already exists"
+	ErrUserNotFound                               = "user not found"
+	ErrDatabaseError                              = "database error"
+	ErrUnknownError                               = "unknown error"
+	ErrorMsgTokenNotFoundOrExpired                = "Authorization header is required"
+	TokenNotFoundError             TokenErrorType = iota
+	TokenDuplicateError
+	UserNotFoundError
+	DatabaseError
+	UnknownError
 )
+
+type TokenErrorType int
+
+type TokenError struct {
+	Message string
+	Type    TokenErrorType
+}
+
+func (e *TokenError) Error() string {
+	return e.Message
+}
 
 func AuthMiddleware(db *sql.DB) gin.HandlerFunc {
 	return func(c *gin.Context) {
@@ -76,24 +93,4 @@ func verifyToken(db *sql.DB, tokenString string) (*TokenRecord, error) {
 		return nil, handleDatabaseError(err)
 	}
 	return &record, nil
-}
-
-type TokenErrorType int
-
-const (
-	ErrorMsgTokenNotFoundOrExpired                = "Authorization header is required"
-	TokenNotFoundError             TokenErrorType = iota
-	TokenDuplicateError
-	UserNotFoundError
-	DatabaseError
-	UnknownError
-)
-
-type TokenError struct {
-	Message string
-	Type    TokenErrorType
-}
-
-func (e *TokenError) Error() string {
-	return e.Message
 }

@@ -1,21 +1,54 @@
-package src
+package database
 
 import (
-	"context"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
+	"golang.org/x/net/context"
 	"log"
 	"sync"
 	"time"
 )
 
 var (
-	Client      *mongo.Client
-	clentOnce   sync.Once
+	client      *mongo.Client
+	clientOnce  sync.Once
 	clientErr   error
 	isConnected bool
 )
 
+func Init(connectionString string) error {
+	clientOnce.Do(func() {
+		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+		defer cancel()
+		clientOptions := options.Client().ApplyURI(connectionString)
+		client, clientErr = mongo.Connect(ctx, clientOptions)
+		if clientErr != nil {
+			log.Print("Failed to connect to MongoDB:", clientErr)
+			return
+		}
+		clientErr = client.Ping(ctx, nil)
+		if clientErr != nil {
+			log.Print("Failed to ping MongoDB", clientErr)
+			return
+		}
+		isConnected = true
+		log.Print("Conncted to MongoDB server")
+	})
+	return clientErr
+}
+
+func GetClient() *mongo.Client {
+	if !isConnected {
+		log.Fatal("MongoDB is not connected. Call database.Init() first.")
+	}
+	return client
+}
+
+func GetCollection(dbName, collectionName string) *mongo.Collection {
+	return GetClient().Database(dbNamed).Collection(colectionName)
+}
+
+/*
 func InitMongoClient() error {
 	clentOnce.Do(func() {
 		ConnectingMongoDB()
@@ -32,7 +65,6 @@ func ConnectingMongoDB() {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 
-	// Подключаемся к серверу MongoDB без указания конкретной базы данных
 	clientOptions := options.Client().ApplyURI("mongodb://localhost:27017")
 	var err error
 	Client, err = mongo.Connect(ctx, clientOptions)
@@ -81,3 +113,4 @@ func EnsureMongoDBConnection() error {
 	}
 	return InitMongoClient()
 }
+*/
