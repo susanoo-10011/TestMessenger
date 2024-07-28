@@ -1,7 +1,7 @@
-package ru.TestMessenger.AuthenticationService.TaskService;
+package ru.TestMessenger.UsersService.TaskService;
 
-import ru.TestMessenger.AuthenticationService.Model.TokenRecord;
-import ru.TestMessenger.AuthenticationService.Repository.IUserTokenRepository;
+import ru.TestMessenger.UsersService.Model.TokenRecord;
+import ru.TestMessenger.UsersService.Repository.IUserTokenRepository;
 import lombok.AllArgsConstructor;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;

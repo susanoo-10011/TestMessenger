@@ -1,9 +1,6 @@
-package ru.TestMessenger.AuthenticationService.Service.EntityResponseTDO;
-
-import org.springframework.http.HttpStatus;
+package ru.TestMessenger.UsersService.Service.EntityResponseTDO;
 
 import java.time.LocalDateTime;
-import java.util.Date;
 
 
 public class SaveUserResponseTDO {

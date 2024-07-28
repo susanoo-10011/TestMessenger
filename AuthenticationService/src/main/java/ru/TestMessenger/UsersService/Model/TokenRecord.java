@@ -1,13 +1,12 @@
-package ru.TestMessenger.AuthenticationService.Model;
+package ru.TestMessenger.UsersService.Model;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import lombok.Data;
 
 import java.time.LocalDateTime;
-import java.util.Date;
 
-@Data // добавляет get set
+@Data
 @Entity
 @Table(name = "token_records", schema = "auth_schema")
 public class TokenRecord {
@@ -17,12 +16,12 @@ public class TokenRecord {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @OneToOne(fetch = FetchType.LAZY)
+    @OneToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "user_id", nullable = false)
     @JsonIgnore
     private User user;
 
-    @Column(nullable = false, unique = true)
+    @Column(unique = true)
     private String tokenValue;
 
     @Column(name = "expires_at")
